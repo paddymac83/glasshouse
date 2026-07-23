@@ -1,0 +1,39 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  ingestion:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - run: uv pip install --system -e ".[dev]"
+        working-directory: ingestion
+      - run: uv run --directory ingestion pytest -v
+
+  settlement-engine-rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - run: cargo test
+        working-directory: settlement-engine
+
+  settlement-engine-python-bridge:
+    runs-on: ubuntu-latest
+    needs: settlement-engine-rust
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - run: uv venv
+        working-directory: settlement-engine
+      - run: uv pip install -e . && uv pip install pytest
+        working-directory: settlement-engine
+      - run: uv run pytest python/test_bridge.py -v
+        working-directory: settlement-engine

@@ -1,0 +1,24 @@
+[package]
+name = "glasshouse-settlement"
+version = "0.1.0"
+edition = "2021"
+description = "Half-hourly generator-to-consumer settlement engine for the Glasshouse pricing demo."
+license = "MIT"
+
+[lib]
+name = "glasshouse_settlement"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# Plain dependency (no "extension-module" feature) so `cargo test` links
+# against libpython directly and just works. `python-ext` below is what
+# maturin enables when building the actual importable .so for Python --
+# see python/README.md.
+pyo3 = "0.22"
+
+[features]
+default = []
+python-ext = ["pyo3/extension-module"]
+
+[profile.release]
+lto = true

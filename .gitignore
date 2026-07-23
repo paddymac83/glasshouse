@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+.venv/
+venv/
+*.db
+
+# Rust
+/settlement-engine/target/
+
+# Node (future frontend)
+node_modules/
+dist/
+
+# Misc
+.DS_Store
+.env

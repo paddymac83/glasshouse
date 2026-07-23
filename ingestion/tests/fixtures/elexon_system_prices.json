@@ -1,0 +1,7 @@
+{
+  "data": [
+    {"settlementDate": "2026-07-22", "settlementPeriod": 1, "systemSellPrice": 65.20, "systemBuyPrice": 65.20},
+    {"settlementDate": "2026-07-22", "settlementPeriod": 2, "systemSellPrice": 60.10, "systemBuyPrice": 60.10},
+    {"settlementDate": "2026-07-22", "settlementPeriod": 3, "systemSellPrice": -5.40, "systemBuyPrice": -5.40}
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "count": 2,
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "value_exc_vat": 18.50,
+      "value_inc_vat": 19.43,
+      "valid_from": "2026-07-22T00:00:00Z",
+      "valid_to": "2026-07-22T00:30:00Z"
+    },
+    {
+      "value_exc_vat": 15.20,
+      "value_inc_vat": 15.96,
+      "valid_from": "2026-07-22T00:30:00Z",
+      "valid_to": "2026-07-22T01:00:00Z"
+    }
+  ]
+}

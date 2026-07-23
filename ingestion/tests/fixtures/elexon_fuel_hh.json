@@ -1,0 +1,7 @@
+{
+  "data": [
+    {"settlementDate": "2026-07-22", "settlementPeriod": 1, "fuelType": "WIND", "generation": 8213.5},
+    {"settlementDate": "2026-07-22", "settlementPeriod": 1, "fuelType": "CCGT", "generation": 12000.0},
+    {"settlementDate": "2026-07-22", "settlementPeriod": 1, "fuelType": "NUCLEAR", "generation": 4500.0}
+  ]
+}
