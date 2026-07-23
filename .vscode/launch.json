@@ -1,0 +1,33 @@
+{
+    // Requires the "Python" + "Python Debugger" extensions, and the
+    // ingestion venv already set up (uv venv && uv pip install -e ".[dev]"
+    // from inside ingestion/) selected as the interpreter for this
+    // workspace: Cmd/Ctrl+Shift+P -> "Python: Select Interpreter" ->
+    // ./ingestion/.venv/bin/python (or .venv\Scripts\python.exe on Windows).
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "verify_live_schema (today, real Elexon API)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/ingestion/scripts/verify_live_schema.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/ingestion",
+            "args": [],
+            "justMyCode": true
+        },
+        {
+            "name": "verify_live_schema (against a local mock server)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/ingestion/scripts/verify_live_schema.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/ingestion",
+            // Point at something on localhost serving fixture-shaped JSON,
+            // so you can iterate on breakpoints without hitting the real
+            // API (or drifting date-based results) every run.
+            "args": ["--base-url", "http://127.0.0.1:8765"],
+            "justMyCode": true
+        }
+    ]
+}
