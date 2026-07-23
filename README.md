@@ -94,10 +94,20 @@ uv run pytest python/test_bridge.py -v  # 3 more tests, against the compiled ext
 The Elexon client's field names (`settlementDate`, `systemSellPrice`,
 `fuelType`, ...) come from Elexon's published API docs and the
 community `elexonpy` client, not from a live call verified in this
-environment. Before trusting it against production data, run it once
-against the real API and diff the response against
-`ingestion/tests/fixtures/elexon_system_prices.json` -- if a field name
-has moved, `ElexonClient._parse_system_price` /
+environment. Before trusting it against production data, run:
+
+```bash
+cd ingestion
+uv run python scripts/verify_live_schema.py --date 2026-07-23
+```
+
+This calls the real Elexon endpoints directly (bypassing `ElexonClient`
+entirely) and diffs the live JSON's field names against
+`tests/fixtures/elexon_system_prices.json` /
+`elexon_fuel_hh.json`. It exits `0` if the schema still matches what
+`elexon_client.py` assumes, `1` with a clear diff if it's drifted --
+safe to wire into CI once you trust it, or just run by hand once after
+cloning. If it reports a mismatch, `ElexonClient._parse_system_price` /
 `_parse_fuel_generation` are the only two places that need to change.
 
 ## License
