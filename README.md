@@ -44,16 +44,24 @@ still to be built.
 
 ## Quickstart
 
-Examples below use [`uv`](https://docs.astral.sh/uv/) — it resolves and
-installs faster than pip, and for `settlement-engine` specifically it
-removes a real papercut: it detects the `maturin` build backend in
-`pyproject.toml` and compiles the Rust extension directly on
-`uv pip install -e .`, with no separate `maturin develop` call and no
-manually exporting `VIRTUAL_ENV`. Plain `pip` still works fine for
-`ingestion` if you'd rather not add a new tool — see the fallback
-commands below each section.
+### One command
 
-### Ingestion (Python)
+```bash
+./setup.sh
+```
+
+Checks for `uv` and a Rust toolchain, sets up both packages' virtual
+environments, builds the settlement engine's Python extension, and runs
+all 22 tests (10 ingestion + 9 Rust + 3 Python bridge), printing a
+single pass/fail summary. Safe to re-run any time — every step is
+idempotent. If either prerequisite is missing it tells you exactly what
+to install rather than failing partway through with an unrelated error.
+
+If you'd rather see (or run) each step individually — useful if you're
+only touching one package, or debugging a step that failed — the
+breakdown below is exactly what `setup.sh` automates.
+
+### Ingestion (Python), by hand
 
 ```bash
 cd ingestion
@@ -71,7 +79,7 @@ uv run glasshouse-ingest octopus-rates --product AGILE-24-10-01 \
     --tariff E-1R-AGILE-24-10-01-C --date 2026-07-22
 ```
 
-### Settlement engine (Rust + Python)
+### Settlement engine (Rust + Python), by hand
 
 ```bash
 cd settlement-engine
