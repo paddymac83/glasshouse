@@ -12,5 +12,7 @@ together and serves the dashboard. Planned surface:
 - `WS /live` -- push a refreshed price/bill every ~30 minutes, matching
   the cadence real half-hourly settlement runs on
 
-Depends on `ingestion` (for stored market data) and `settlement-engine`
-(for the pricing math) as local packages.
+Depends on `ingestion` (for stored market data), `forecast` (for
+day-ahead prices when actual outturn data doesn't exist yet -- see
+`forecast/README.md`), and `settlement-engine` (for the pricing math)
+as local packages.

@@ -3,6 +3,7 @@
 Examples:
     glasshouse-ingest elexon-prices --date 2026-07-22
     glasshouse-ingest elexon-generation --date 2026-07-22
+    glasshouse-ingest elexon-backfill --start 2026-06-01 --end 2026-07-26
     glasshouse-ingest octopus-rates --product AGILE-24-10-01 \\
         --tariff E-1R-AGILE-24-10-01-C --date 2026-07-22
 """
@@ -11,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+import time
 from datetime import date, datetime, timedelta
 
 from glasshouse_ingestion.elexon_client import ElexonApiError, ElexonClient
@@ -46,6 +48,61 @@ def cmd_elexon_generation(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_elexon_backfill(args: argparse.Namespace) -> int:
+    if args.end < args.start:
+        print(f"error: --end ({args.end}) is before --start ({args.start})", file=sys.stderr)
+        return 1
+
+    num_days = (args.end - args.start).days + 1
+    target_dates = [args.start + timedelta(days=i) for i in range(num_days)]
+    datasets = ("prices", "generation") if args.dataset == "both" else (args.dataset,)
+
+    totals = {"prices": 0, "generation": 0}
+    failures: list[tuple[date, str, str]] = []
+
+    with ElexonClient() as client, Storage(args.db) as store:
+        for i, target_date in enumerate(target_dates):
+            results = []
+
+            if "prices" in datasets:
+                try:
+                    written = store.save_system_prices(client.get_system_prices(target_date))
+                    totals["prices"] += written
+                    results.append(f"prices {written}")
+                except ElexonApiError as exc:
+                    failures.append((target_date, "prices", str(exc)))
+                    results.append("prices FAILED")
+
+            if "generation" in datasets:
+                try:
+                    written = store.save_fuel_generation(client.get_fuel_type_generation(target_date))
+                    totals["generation"] += written
+                    results.append(f"generation {written}")
+                except ElexonApiError as exc:
+                    failures.append((target_date, "generation", str(exc)))
+                    results.append("generation FAILED")
+
+            print(f"[{i + 1}/{num_days}] {target_date}: {', '.join(results)}")
+
+            # Be a polite citizen of a free, public API -- especially over
+            # a backfill of many weeks, which is a lot of requests in a row.
+            if args.delay_seconds and i < num_days - 1:
+                time.sleep(args.delay_seconds)
+
+    total_rows = totals["prices"] + totals["generation"]
+    print(
+        f"\nDone: {total_rows} rows written across {num_days} dates "
+        f"({totals['prices']} price rows, {totals['generation']} generation rows)."
+    )
+
+    if failures:
+        print(f"\n{len(failures)} date/dataset combination(s) failed:", file=sys.stderr)
+        for failed_date, dataset, message in failures:
+            print(f"  {failed_date} {dataset}: {message}", file=sys.stderr)
+        return 1
+    return 0
+
+
 def cmd_octopus_rates(args: argparse.Namespace) -> int:
     period_from = datetime.combine(args.date, datetime.min.time())
     period_to = period_from + timedelta(days=1)
@@ -74,6 +131,22 @@ def build_parser() -> argparse.ArgumentParser:
     p_gen = sub.add_parser("elexon-generation", help="fetch generation by fuel type")
     p_gen.add_argument("--date", type=_parse_date, required=True)
     p_gen.set_defaults(func=cmd_elexon_generation)
+
+    p_backfill = sub.add_parser(
+        "elexon-backfill",
+        help="ingest a whole date range in one command (loops elexon-prices/-generation per day)",
+    )
+    p_backfill.add_argument("--start", type=_parse_date, required=True)
+    p_backfill.add_argument("--end", type=_parse_date, required=True)
+    p_backfill.add_argument(
+        "--dataset", choices=["prices", "generation", "both"], default="both",
+        help="which dataset(s) to backfill (default: both)",
+    )
+    p_backfill.add_argument(
+        "--delay-seconds", type=float, default=0.25,
+        help="pause between API calls -- be polite to a free public API (default: 0.25)",
+    )
+    p_backfill.set_defaults(func=cmd_elexon_backfill)
 
     p_octopus = sub.add_parser("octopus-rates", help="fetch a published half-hourly tariff, as a benchmark")
     p_octopus.add_argument("--product", required=True, help="e.g. AGILE-24-10-01")

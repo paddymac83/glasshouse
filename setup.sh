@@ -60,7 +60,24 @@ else
 fi
 
 # ---------------------------------------------------------------------
-# 3. settlement-engine/ -- pure Rust first: fast, no Python involved
+# 3. forecast/ -- pure Python, no Rust involved
+# ---------------------------------------------------------------------
+info "Setting up forecast/"
+cd "$ROOT_DIR/forecast"
+uv venv --allow-existing
+uv pip install -e ".[dev]"
+ok "forecast venv ready"
+
+info "Running forecast tests"
+if uv run pytest -q; then
+    ok "forecast: all tests passed"
+else
+    fail "forecast: tests failed"
+    FAILED=1
+fi
+
+# ---------------------------------------------------------------------
+# 4. settlement-engine/ -- pure Rust first: fast, no Python involved
 # ---------------------------------------------------------------------
 info "Running settlement-engine Rust tests"
 cd "$ROOT_DIR/settlement-engine"
@@ -86,11 +103,11 @@ else
 fi
 
 # ---------------------------------------------------------------------
-# 4. Summary
+# 5. Summary
 # ---------------------------------------------------------------------
 cd "$ROOT_DIR"
 if [ "$FAILED" -eq 0 ]; then
-    info "All set -- 22 tests passing across ingestion + settlement-engine."
+    info "All set -- 38 tests passing across ingestion + forecast + settlement-engine."
     cat <<'EOF'
 
 Next steps:

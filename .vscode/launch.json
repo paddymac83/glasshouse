@@ -28,6 +28,84 @@
             // API (or drifting date-based results) every run.
             "args": ["--base-url", "http://127.0.0.1:8765"],
             "justMyCode": true
+        },
+        {
+            // Worked example: debugs exactly one test by its pytest
+            // node-id (path::function_name). Set breakpoints in the test
+            // itself, in the code it calls (e.g. octopus_client.py), or
+            // in the fixture it depends on (conftest.py) -- all three
+            // get hit in the order pytest actually executes them.
+            "name": "pytest: test_get_standard_unit_rates_parses_fixture",
+            "type": "debugpy",
+            "request": "launch",
+            "python": "${workspaceFolder}/ingestion/.venv/bin/python",
+            "module": "pytest",
+            "args": [
+                "tests/test_octopus_client.py::test_get_standard_unit_rates_parses_fixture",
+                "-v",
+                "-s"
+            ],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/ingestion",
+            "justMyCode": true
+        },
+        {
+            // General-purpose: debugs every test in whichever ingestion
+            // test file you currently have open and focused.
+            "name": "pytest: current file (ingestion)",
+            "type": "debugpy",
+            "request": "launch",
+            "python": "${workspaceFolder}/ingestion/.venv/bin/python",
+            "module": "pytest",
+            "args": ["${file}", "-v", "-s"],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/ingestion",
+            "justMyCode": true
+        },
+        {
+            // Same idea, for forecast/ -- its own venv, its own cwd.
+            "name": "pytest: current file (forecast)",
+            "type": "debugpy",
+            "request": "launch",
+            "python": "${workspaceFolder}/forecast/.venv/bin/python",
+            "module": "pytest",
+            "args": ["${file}", "-v", "-s"],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/forecast",
+            "justMyCode": true
+        },
+        {
+            // Fixed target, no dependency on which editor tab has focus --
+            // use this one if "current file (forecast)" doesn't seem to
+            // be picking your breakpoint up (usually means ${file} wasn't
+            // pointing at the file you thought it was when you hit F5).
+            "name": "pytest: test_forecast_system_prices_reads_from_sqlite",
+            "type": "debugpy",
+            "request": "launch",
+            "python": "${workspaceFolder}/forecast/.venv/bin/python",
+            "module": "pytest",
+            "args": [
+                "tests/test_forecaster.py::test_forecast_system_prices_reads_from_sqlite",
+                "-v",
+                "-s"
+            ],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/forecast",
+            "justMyCode": true
+        },
+        {
+            // Same idea, for the settlement-engine Python bridge tests --
+            // note the different venv and cwd, since it's a separate
+            // Python project from ingestion.
+            "name": "pytest: current file (settlement-engine bridge)",
+            "type": "debugpy",
+            "request": "launch",
+            "python": "${workspaceFolder}/settlement-engine/.venv/bin/python",
+            "module": "pytest",
+            "args": ["${file}", "-v", "-s"],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/settlement-engine",
+            "justMyCode": true
         }
     ]
 }

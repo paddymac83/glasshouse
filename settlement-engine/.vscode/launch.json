@@ -1,0 +1,21 @@
+{
+    // This folder is its own workspace root (see ../../glasshouse.code-workspace),
+    // so ${workspaceFolder} below unambiguously means settlement-engine/ --
+    // no qualifier needed, and .venv/bin/python is *this* folder's venv
+    // (the one with the compiled Rust extension installed into it via
+    // `uv pip install -e .` -- see python/README.md).
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "pytest: current file (python bridge tests)",
+            "type": "debugpy",
+            "request": "launch",
+            "python": "${workspaceFolder}/.venv/bin/python",
+            "module": "pytest",
+            "args": ["${file}", "-v", "-s"],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "justMyCode": true
+        }
+    ]
+}

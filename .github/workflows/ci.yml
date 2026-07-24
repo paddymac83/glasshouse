@@ -15,6 +15,15 @@ jobs:
         working-directory: ingestion
       - run: uv run --directory ingestion pytest -v
 
+  forecast:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - run: uv pip install --system -e ".[dev]"
+        working-directory: forecast
+      - run: uv run --directory forecast pytest -v
+
   settlement-engine-rust:
     runs-on: ubuntu-latest
     steps:

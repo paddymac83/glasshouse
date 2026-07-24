@@ -1,0 +1,69 @@
+{
+    // This folder is its own workspace root (see ../../glasshouse.code-workspace),
+    // so ${workspaceFolder} below unambiguously means ingestion/ -- no
+    // qualifier needed, and .venv/bin/python is *this* folder's venv.
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "verify_live_schema (today, real Elexon API)",
+            "type": "debugpy",
+            "request": "launch",
+            "python": "${workspaceFolder}/.venv/bin/python",
+            "program": "${workspaceFolder}/scripts/verify_live_schema.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "args": [],
+            "justMyCode": true
+        },
+        {
+            "name": "verify_live_schema (against a local mock server)",
+            "type": "debugpy",
+            "request": "launch",
+            "python": "${workspaceFolder}/.venv/bin/python",
+            "program": "${workspaceFolder}/scripts/verify_live_schema.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            // Point at something on localhost serving fixture-shaped JSON,
+            // so you can iterate on breakpoints without hitting the real
+            // API (or drifting date-based results) every run.
+            "args": ["--base-url", "http://127.0.0.1:8765"],
+            "justMyCode": true
+        },
+        {
+            // Worked example: debugs exactly one test by its pytest
+            // node-id (path::function_name). Set breakpoints in the test
+            // itself, in the code it calls (e.g. octopus_client.py), or
+            // in the fixture it depends on (conftest.py) -- all three
+            // get hit in the order pytest actually executes them.
+            "name": "pytest: test_get_standard_unit_rates_parses_fixture",
+            "type": "debugpy",
+            "request": "launch",
+            "python": "${workspaceFolder}/.venv/bin/python",
+            "module": "pytest",
+            "args": [
+                "tests/test_octopus_client.py::test_get_standard_unit_rates_parses_fixture",
+                "-v",
+                "-s"
+            ],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "justMyCode": true
+        },
+        {
+            // General-purpose: debugs every test in whichever ingestion
+            // test file you currently have open and focused. If this
+            // doesn't seem to hit your breakpoint, ${file} probably
+            // wasn't pointing at the file you thought -- use a fixed
+            // node-id config like the one above instead.
+            "name": "pytest: current file",
+            "type": "debugpy",
+            "request": "launch",
+            "python": "${workspaceFolder}/.venv/bin/python",
+            "module": "pytest",
+            "args": ["${file}", "-v", "-s"],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "justMyCode": true
+        }
+    ]
+}

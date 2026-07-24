@@ -33,7 +33,7 @@ settled the way this project already assumes.
 |---|---|---|
 | `ingestion/` | **built** | Python: pulls GB system prices and generation-by-fuel-type from Elexon's public API, and Octopus's public Agile tariff rates as a benchmark. SQLite storage. |
 | `settlement-engine/` | **built** | Rust: the merit-order allocation and bill-decomposition engine, exposed to Python via PyO3. Pure-Rust tests (`cargo test`) plus a Python bridge test. |
-| `forecast/` | planned | Day-ahead demand/generation forecasting. |
+| `forecast/` | **built** | Python: seasonal-baseline (day-of-week x settlement-period) day-ahead forecasting, reading from `ingestion`'s SQLite store. |
 | `api/` | planned | FastAPI service wiring ingestion + forecast + settlement-engine together. |
 | `frontend/` | planned | React dashboard. |
 | `infra/` | planned | AWS CDK (Python), CI/CD, observability. |
@@ -50,12 +50,13 @@ still to be built.
 ./setup.sh
 ```
 
-Checks for `uv` and a Rust toolchain, sets up both packages' virtual
-environments, builds the settlement engine's Python extension, and runs
-all 22 tests (10 ingestion + 9 Rust + 3 Python bridge), printing a
-single pass/fail summary. Safe to re-run any time — every step is
-idempotent. If either prerequisite is missing it tells you exactly what
-to install rather than failing partway through with an unrelated error.
+Checks for `uv` and a Rust toolchain, sets up all three packages'
+virtual environments, builds the settlement engine's Python extension,
+and runs all 38 tests (14 ingestion + 9 Rust + 3 Python bridge + 12
+forecast), printing a single pass/fail summary. Safe to re-run any
+time — every step is idempotent. If either prerequisite is missing it
+tells you exactly what to install rather than failing partway through
+with an unrelated error.
 
 If you'd rather see (or run) each step individually — useful if you're
 only touching one package, or debugging a step that failed — the
@@ -66,7 +67,7 @@ breakdown below is exactly what `setup.sh` automates.
 ```bash
 cd ingestion
 uv venv && uv pip install -e ".[dev]"
-uv run pytest -v                # 10 tests, all against mocked HTTP -- no network needed
+uv run pytest -v                # 14 tests, all against mocked HTTP -- no network needed
 
 # pip equivalent:
 #   python3 -m venv .venv && . .venv/bin/activate
@@ -77,6 +78,12 @@ uv run glasshouse-ingest elexon-prices --date 2026-07-22
 uv run glasshouse-ingest elexon-generation --date 2026-07-22
 uv run glasshouse-ingest octopus-rates --product AGILE-24-10-01 \
     --tariff E-1R-AGILE-24-10-01-C --date 2026-07-22
+
+# forecast/ needs several weeks of same-weekday history to produce a
+# confident (non-fallback) forecast -- elexon-backfill loops both
+# datasets over a date range in one command instead of calling the two
+# commands above once per day by hand:
+uv run glasshouse-ingest elexon-backfill --start 2026-06-01 --end 2026-07-26
 ```
 
 ### Settlement engine (Rust + Python), by hand
@@ -96,6 +103,40 @@ uv run pytest python/test_bridge.py -v  # 3 more tests, against the compiled ext
 #   pip install maturin pytest && maturin develop --release
 #   pytest python/test_bridge.py -v
 ```
+
+### Forecast (Python), by hand
+
+```bash
+cd forecast
+uv venv && uv pip install -e ".[dev]"
+uv run pytest -v                # 12 tests: 7 pure-logic, 5 against real SQLite
+
+# Assumes ../ingestion/glasshouse.db already has a few weeks of history:
+uv run glasshouse-forecast --db ../ingestion/glasshouse.db system-prices --date 2026-08-05
+```
+
+## Development environment (VS Code)
+
+There are three separate Python virtual environments in this repo
+(`ingestion/.venv`, `forecast/.venv`, `settlement-engine/.venv`) plus a
+Rust toolchain -- enough that opening the plain folder and relying on
+VS Code's single, workspace-wide interpreter selection reliably leads
+to "why is this failing" debugging sessions where the real answer is
+"wrong venv." Open **`glasshouse.code-workspace`** instead of the
+folder (File > Open Workspace from File...): it lists `ingestion/`,
+`forecast/`, and `settlement-engine/` as their own workspace roots,
+each carrying its own `.vscode/settings.json` pinning its own
+interpreter and its own `.vscode/launch.json` debug configs. Terminals
+opened from a given folder in the Explorer use that folder's venv, the
+Testing sidebar discovers that folder's tests correctly, and every
+debug config already has an explicit interpreter path -- there's
+nothing global left to accidentally have set wrong.
+
+You'll see `ingestion/`, `forecast/`, and `settlement-engine/` each
+show up twice in the Explorer -- once nested under "glasshouse (root)"
+(so `README.md`, `setup.sh`, `docs/` stay visible), once as their own
+top-level section with the correct interpreter attached. That's
+expected for a multi-root workspace built this way, not a bug.
 
 ## A note on data accuracy
 

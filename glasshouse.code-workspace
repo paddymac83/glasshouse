@@ -1,0 +1,41 @@
+{
+    // Open THIS file in VS Code (File > Open Workspace from File...)
+    // instead of the plain glasshouse/ folder. Each Python subproject
+    // gets listed as its own root below, which is what lets each one
+    // carry its own .vscode/settings.json pointing at its own .venv --
+    // the thing that was causing "wrong interpreter" mixups when this
+    // was a single-root workspace and only one interpreter could be
+    // selected at a time for the whole repo.
+    //
+    // Expect ingestion/, forecast/, and settlement-engine/ to each show
+    // up twice in the Explorer: once nested inside "glasshouse (root)",
+    // once as their own top-level section below it. That's normal for
+    // a multi-root workspace set up this way -- the top-level entries
+    // are the ones with their own interpreter and debug configs; the
+    // nested ones under the root are just there so root-level files
+    // like README.md and setup.sh stay visible.
+    "folders": [
+        {
+            "name": "glasshouse (root)",
+            "path": "."
+        },
+        {
+            "name": "ingestion",
+            "path": "ingestion"
+        },
+        {
+            "name": "forecast",
+            "path": "forecast"
+        },
+        {
+            "name": "settlement-engine",
+            "path": "settlement-engine"
+        }
+    ],
+    "settings": {
+        // Workspace-wide settings go here if any are ever needed.
+        // Per-folder Python interpreter settings deliberately live in
+        // each folder's own .vscode/settings.json instead -- that's
+        // the whole point of this file's structure.
+    }
+}

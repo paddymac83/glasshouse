@@ -1,0 +1,26 @@
+[project]
+name = "glasshouse-forecast"
+version = "0.1.0"
+description = "Seasonal-baseline day-ahead forecasting for Glasshouse, reading from ingestion's SQLite store."
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.6",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+]
+
+[project.scripts]
+glasshouse-forecast = "glasshouse_forecast.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["glasshouse_forecast"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
