@@ -73,3 +73,31 @@ def test_save_fuel_generation_keys_on_fuel_type():
 
         written = store.save_fuel_generation(records)
         assert written == 2
+
+
+def test_latest_system_prices_returns_most_recent_regardless_of_date():
+    with Storage(":memory:") as store:
+        store.save_system_prices([
+            SettlementPrice(settlement_date=date(2026, 7, 20), settlement_period=48, system_sell_price=10.0, system_buy_price=10.0),
+            SettlementPrice(settlement_date=date(2026, 7, 21), settlement_period=1, system_sell_price=20.0, system_buy_price=20.0),
+            SettlementPrice(settlement_date=date(2026, 7, 21), settlement_period=2, system_sell_price=30.0, system_buy_price=30.0),
+        ])
+
+        latest_two = store.latest_system_prices(limit=2)
+
+        assert len(latest_two) == 2
+        # oldest-first within the returned window
+        assert latest_two[0].settlement_period == 1
+        assert latest_two[1].settlement_period == 2
+        assert all(p.settlement_date == date(2026, 7, 21) for p in latest_two)
+
+
+def test_latest_system_prices_handles_a_store_with_fewer_rows_than_the_limit():
+    with Storage(":memory:") as store:
+        store.save_system_prices([
+            SettlementPrice(settlement_date=date(2026, 7, 21), settlement_period=1, system_sell_price=20.0, system_buy_price=20.0),
+        ])
+
+        result = store.latest_system_prices(limit=48)
+
+        assert len(result) == 1

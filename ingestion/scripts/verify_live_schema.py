@@ -7,11 +7,25 @@ compares raw JSON field names, so it catches a schema mismatch even in
 cases where parsing wouldn't loudly fail -- e.g. a field that still
 exists but means something subtly different.
 
+It also reports the actual `fuelType` *values* the live FUELHH dataset
+uses for the given date -- field names are stable enough to fixture
+and diff, but the fuel-type vocabulary isn't something a single fixture
+can meaningfully pin (it's fine, expected even, for it to include
+things we've never fixtured). What this catches instead: silently
+assuming a single category like "WIND" exists when the real data
+splits it into several (e.g. "WIND_ONSHORE" / "WIND_OFFSHORE"). That
+kind of mismatch doesn't raise an error anywhere in the ingestion
+pipeline -- it just produces a real but suspiciously sparse forecast,
+which is a much easier thing to miss.
+
 Usage:
     uv run python scripts/verify_live_schema.py --date 2026-07-23
 
 Exit code is 0 if the live schema matches what `_parse_system_price`
-and `_parse_fuel_generation` expect, 1 if it's drifted.
+and `_parse_fuel_generation` expect, 1 if it's drifted. The fuel-type
+vocabulary report is informational only and doesn't affect the exit
+code -- new fuel type categories appearing over time is normal, not
+drift.
 """
 
 from __future__ import annotations
@@ -60,6 +74,36 @@ def check(label: str, url: str, params: dict, fixture_name: str) -> bool:
     return not missing
 
 
+def check_fuel_type_vocabulary(base_url: str, target_date: date) -> None:
+    """Report every distinct fuelType value the live FUELHH response uses
+    for one date. Informational only -- see module docstring for why this
+    isn't a pass/fail check the way field names are.
+    """
+    response = httpx.get(
+        f"{base_url}/datasets/FUELHH/stream",
+        params={
+            "settlementDateFrom": target_date.isoformat(),
+            "settlementDateTo": target_date.isoformat(),
+        },
+        timeout=10.0,
+    )
+    response.raise_for_status()
+    payload = response.json()
+    records = payload.get("data", payload) if isinstance(payload, dict) else payload
+
+    fuel_types = sorted({r["fuelType"] for r in records if "fuelType" in r})
+    print(f"\nFuel types seen live on {target_date}: {fuel_types}")
+
+    wind_like = [f for f in fuel_types if "wind" in f.lower()]
+    if "WIND" in fuel_types:
+        print("  OK -- an exact 'WIND' category exists")
+    elif wind_like:
+        print(f"  NOTE -- no exact 'WIND' category, but these look wind-related: {wind_like}")
+        print("  If you're forecasting wind generation, use one of the names above, not 'WIND'.")
+    else:
+        print("  NOTE -- nothing wind-related found for this date (could just be a data gap for this date)")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -82,10 +126,12 @@ def main() -> int:
     )
     ok_generation = check(
         "Fuel-type generation",
-        f"{args.base_url}/datasets/FUELHH",
-        {"settlementDate": args.date.isoformat()},
+        f"{args.base_url}/datasets/FUELHH/stream",
+        {"settlementDateFrom": args.date.isoformat(), "settlementDateTo": args.date.isoformat()},
         "elexon_fuel_hh.json",
     )
+
+    check_fuel_type_vocabulary(args.base_url, args.date)
 
     if ok_prices and ok_generation:
         print("\nLive schema matches what elexon_client.py assumes.")

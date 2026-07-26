@@ -1,0 +1,33 @@
+{
+    // This folder is its own workspace root (see ../../glasshouse.code-workspace),
+    // so ${workspaceFolder} below unambiguously means api/ -- no
+    // qualifier needed, and .venv/bin/python is *this* folder's venv.
+    "version": "0.2.0",
+    "configurations": [
+        {
+            // Run the actual dev server under the debugger -- breakpoints
+            // in main.py / quote.py hit on real incoming requests, e.g.
+            // from curl or /docs, not just from pytest.
+            "name": "Run dev server (uvicorn)",
+            "type": "debugpy",
+            "request": "launch",
+            "python": "${workspaceFolder}/.venv/bin/python",
+            "module": "uvicorn",
+            "args": ["glasshouse_api.main:app", "--reload", "--port", "8000"],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "justMyCode": true
+        },
+        {
+            "name": "pytest: current file",
+            "type": "debugpy",
+            "request": "launch",
+            "python": "${workspaceFolder}/.venv/bin/python",
+            "module": "pytest",
+            "args": ["${file}", "-v", "-s"],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "justMyCode": true
+        }
+    ]
+}

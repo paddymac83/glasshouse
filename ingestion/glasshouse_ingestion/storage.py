@@ -124,3 +124,26 @@ class Storage:
             )
             for row in cursor.fetchall()
         ]
+
+    def latest_system_prices(self, limit: int = 48) -> list[SettlementPrice]:
+        """The most recent `limit` settlement periods, regardless of date --
+        for a "what's the price right now" view, as opposed to
+        `system_prices_for_date`'s "what happened on this specific day."
+        Returned oldest-first (chronological), matching
+        `system_prices_for_date`'s ordering.
+        """
+        cursor = self._conn.execute(
+            "SELECT settlement_date, settlement_period, system_sell_price, system_buy_price "
+            "FROM settlement_prices ORDER BY settlement_date DESC, settlement_period DESC LIMIT ?",
+            (limit,),
+        )
+        rows = cursor.fetchall()
+        return [
+            SettlementPrice(
+                settlement_date=row[0],
+                settlement_period=row[1],
+                system_sell_price=row[2],
+                system_buy_price=row[3],
+            )
+            for row in reversed(rows)
+        ]

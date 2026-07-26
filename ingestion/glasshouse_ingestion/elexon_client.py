@@ -2,16 +2,20 @@
 
 The API is public and requires no key: https://developer.data.elexon.co.uk/
 
-NOTE ON SCHEMA ASSUMPTIONS: the field names below (`settlementDate`,
-`settlementPeriod`, `systemSellPrice`, `systemBuyPrice`, `fuelType`,
-`generation`) are taken from Elexon's published API docs and the
-community `elexonpy` client's response models, not from a live call --
-this environment's network allowlist doesn't include data.elexon.co.uk.
-Before relying on this against production data, run
-`glasshouse-ingest elexon-prices --date <today>` once against the real
-API and diff the raw JSON against `tests/fixtures/elexon_system_prices.json`.
-If a field has moved, `_parse_system_price` / `_parse_fuel_generation`
-are the only two places you need to touch.
+NOTE ON SCHEMA ASSUMPTIONS: system-prices' field names (`settlementDate`,
+`settlementPeriod`, `systemSellPrice`, `systemBuyPrice`) are still just
+taken from Elexon's published docs, not a verified live call -- this
+environment's network allowlist doesn't include data.elexon.co.uk, so
+that one is still unverified from here. FUELHH's shape, by contrast,
+*has* been confirmed against live data (2026-07-25): field names are
+right, but the endpoint and query parameters originally assumed here
+were wrong -- see get_fuel_type_generation's docstring for what broke
+and how it was found. That's the general pattern worth remembering:
+before relying on any of this against production data, run
+`glasshouse-ingest elexon-prices --date <today>` (or the equivalent for
+generation) once against the real API and diff the raw JSON against
+`tests/fixtures/`. If something's moved, `_parse_system_price` /
+`_parse_fuel_generation` are the only two places you need to touch.
 """
 
 from __future__ import annotations
@@ -63,10 +67,24 @@ class ElexonClient:
         return [self._parse_system_price(record) for record in records]
 
     def get_fuel_type_generation(self, settlement_date: date) -> list[FuelTypeGeneration]:
-        """Half-hourly generation outturn by fuel type for a given date."""
+        """Half-hourly generation outturn by fuel type for a given date.
+
+        Hits /datasets/FUELHH/stream, not the plain /datasets/FUELHH --
+        confirmed live on 2026-07-25 that the plain endpoint silently
+        ignores any date filter and always returns whatever is most
+        recent, regardless of what's requested. The /stream variant
+        also doesn't take a single `settlementDate` the way system-prices
+        does; it wants a range, so a single day is queried as
+        settlementDateFrom == settlementDateTo. See
+        tests/test_elexon_client.py::test_get_fuel_type_generation_hits_the_stream_endpoint_with_a_date_range
+        for the regression test that caught this.
+        """
         response = self._client.get(
-            "/datasets/FUELHH",
-            params={"settlementDate": settlement_date.isoformat()},
+            "/datasets/FUELHH/stream",
+            params={
+                "settlementDateFrom": settlement_date.isoformat(),
+                "settlementDateTo": settlement_date.isoformat(),
+            },
         )
         records = self._unwrap(response)
         return [self._parse_fuel_generation(record) for record in records]

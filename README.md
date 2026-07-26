@@ -34,7 +34,7 @@ settled the way this project already assumes.
 | `ingestion/` | **built** | Python: pulls GB system prices and generation-by-fuel-type from Elexon's public API, and Octopus's public Agile tariff rates as a benchmark. SQLite storage. |
 | `settlement-engine/` | **built** | Rust: the merit-order allocation and bill-decomposition engine, exposed to Python via PyO3. Pure-Rust tests (`cargo test`) plus a Python bridge test. |
 | `forecast/` | **built** | Python: seasonal-baseline (day-of-week x settlement-period) day-ahead forecasting, reading from `ingestion`'s SQLite store. |
-| `api/` | planned | FastAPI service wiring ingestion + forecast + settlement-engine together. |
+| `api/` | **built** | FastAPI service wiring ingestion + forecast + settlement-engine together -- `/settle`, `/quote`, `/prices/latest`, `/forecast/*`. |
 | `frontend/` | planned | React dashboard. |
 | `infra/` | planned | AWS CDK (Python), CI/CD, observability. |
 | `docs/adr/` | ongoing | Architecture decision records. |
@@ -50,13 +50,14 @@ still to be built.
 ./setup.sh
 ```
 
-Checks for `uv` and a Rust toolchain, sets up all three packages'
-virtual environments, builds the settlement engine's Python extension,
-and runs all 38 tests (14 ingestion + 9 Rust + 3 Python bridge + 12
-forecast), printing a single pass/fail summary. Safe to re-run any
-time — every step is idempotent. If either prerequisite is missing it
-tells you exactly what to install rather than failing partway through
-with an unrelated error.
+Checks for `uv` and a Rust toolchain, sets up all four packages'
+virtual environments, builds the settlement engine's Python extension
+(twice -- once for its own venv, once as api's dependency), and runs
+all 57 tests (17 ingestion + 9 Rust + 3 Python bridge + 12 forecast +
+16 api), printing a single pass/fail summary. Safe to re-run any time —
+every step is idempotent. If either prerequisite is missing it tells
+you exactly what to install rather than failing partway through with
+an unrelated error.
 
 If you'd rather see (or run) each step individually — useful if you're
 only touching one package, or debugging a step that failed — the
@@ -67,7 +68,7 @@ breakdown below is exactly what `setup.sh` automates.
 ```bash
 cd ingestion
 uv venv && uv pip install -e ".[dev]"
-uv run pytest -v                # 14 tests, all against mocked HTTP -- no network needed
+uv run pytest -v                # 17 tests, all against mocked HTTP -- no network needed
 
 # pip equivalent:
 #   python3 -m venv .venv && . .venv/bin/activate
@@ -115,6 +116,22 @@ uv run pytest -v                # 12 tests: 7 pure-logic, 5 against real SQLite
 uv run glasshouse-forecast --db ../ingestion/glasshouse.db system-prices --date 2026-08-05
 ```
 
+### API (Python + FastAPI), by hand
+
+```bash
+cd api
+uv venv && uv pip install -e ".[dev]"    # also resolves ingestion, forecast,
+                                          # and settlement-engine as local path
+                                          # deps -- see [tool.uv.sources] in
+                                          # pyproject.toml -- and compiles the
+                                          # Rust extension automatically
+uv run pytest -v                         # 16 tests
+
+uv run uvicorn glasshouse_api.main:app --reload
+# -> http://127.0.0.1:8000/docs for interactive Swagger UI
+# -> POST /settle or GET /quote for the "get a live price" endpoints
+```
+
 ## Development environment (VS Code)
 
 There are three separate Python virtual environments in this repo
@@ -158,6 +175,28 @@ entirely) and diffs the live JSON's field names against
 safe to wire into CI once you trust it, or just run by hand once after
 cloning. If it reports a mismatch, `ElexonClient._parse_system_price` /
 `_parse_fuel_generation` are the only two places that need to change.
+
+The same script also reports the actual `fuelType` *values* the live
+FUELHH dataset uses (e.g. wind may be split into `WIND_ONSHORE` /
+`WIND_OFFSHORE` rather than one combined `WIND` category) -- unlike the
+field-name diff this isn't pass/fail, since new categories appearing
+over time is normal, but it flags the specific, easy-to-miss failure
+mode where a fuel type you're forecasting doesn't exist under the name
+you assumed and quietly produces a near-empty forecast instead of an
+error.
+
+**A real example of this catching something**: `get_fuel_type_generation`
+originally hit `/datasets/FUELHH` with a single `settlementDate`
+parameter, based on Elexon's published docs. Confirmed live on
+2026-07-25 that this was wrong on two counts -- the plain endpoint
+silently ignores any date filter and always returns whatever's most
+recent, and the historical-lookup variant (`/datasets/FUELHH/stream`)
+takes a `settlementDateFrom`/`settlementDateTo` range, not a single
+date. A backfill across several months had been silently collapsing
+every request into just the 1-2 most recent dates -- no errors, no
+failed requests, just quietly wrong data. Fixed now, with a regression
+test (`test_get_fuel_type_generation_hits_the_stream_endpoint_with_a_date_range`)
+that pins the actual request shape so this can't silently reappear.
 
 ## License
 

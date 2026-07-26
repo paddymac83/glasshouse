@@ -1,7 +1,5 @@
-{
-  "data": [
-    {"settlementDate": "2026-07-22", "settlementPeriod": 1, "fuelType": "WIND", "generation": 8213.5},
-    {"settlementDate": "2026-07-22", "settlementPeriod": 1, "fuelType": "CCGT", "generation": 12000.0},
-    {"settlementDate": "2026-07-22", "settlementPeriod": 1, "fuelType": "NUCLEAR", "generation": 4500.0}
-  ]
-}
+[
+  {"dataset": "FUELHH", "publishTime": "2026-07-22T00:30:00Z", "startTime": "2026-07-22T00:00:00Z", "settlementDate": "2026-07-22", "settlementPeriod": 1, "fuelType": "WIND", "generation": 8213.5},
+  {"dataset": "FUELHH", "publishTime": "2026-07-22T00:30:00Z", "startTime": "2026-07-22T00:00:00Z", "settlementDate": "2026-07-22", "settlementPeriod": 1, "fuelType": "CCGT", "generation": 12000.0},
+  {"dataset": "FUELHH", "publishTime": "2026-07-22T00:30:00Z", "startTime": "2026-07-22T00:00:00Z", "settlementDate": "2026-07-22", "settlementPeriod": 1, "fuelType": "NUCLEAR", "generation": 4500.0}
+]

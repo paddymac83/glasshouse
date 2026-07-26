@@ -27,9 +27,17 @@ def _date_tagged_handler(prices_template, generation_template, fail_dates: froze
         if requested_date in fail_dates:
             return httpx.Response(503, request=request)
 
-        template = prices_template if "system-prices" in request.url.path else generation_template
-        payload = copy.deepcopy(template)
-        for record in payload["data"]:
+        if "system-prices" in request.url.path:
+            payload = copy.deepcopy(prices_template)
+            records = payload["data"]
+        else:
+            # The generation fixture is a bare list (matching the real,
+            # confirmed-live /stream response shape), unlike the prices
+            # fixture which is still {"data": [...]}.
+            payload = copy.deepcopy(generation_template)
+            records = payload if isinstance(payload, list) else payload["data"]
+
+        for record in records:
             record["settlementDate"] = requested_date
         return httpx.Response(200, json=payload, request=request)
 

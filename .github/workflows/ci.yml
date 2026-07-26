@@ -46,3 +46,23 @@ jobs:
         working-directory: settlement-engine
       - run: uv run pytest python/test_bridge.py -v
         working-directory: settlement-engine
+
+  api:
+    runs-on: ubuntu-latest
+    needs: settlement-engine-rust
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - uses: astral-sh/setup-uv@v3
+      # uv venv (not --system) because installing glasshouse-settlement
+      # as a local path dependency invokes maturin, which needs a real
+      # virtualenv to build into -- same reason settlement-engine's own
+      # job above does the same thing.
+      - run: uv venv
+        working-directory: api
+      - run: uv pip install -e ".[dev]"
+        working-directory: api
+      - run: uv run pytest -v
+        working-directory: api

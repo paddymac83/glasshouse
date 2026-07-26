@@ -103,11 +103,28 @@ else
 fi
 
 # ---------------------------------------------------------------------
-# 5. Summary
+# 5. api/ -- depends on all three other packages as local path deps
+# ---------------------------------------------------------------------
+info "Setting up api/ (this also builds settlement-engine's Rust extension a second time, into api's own venv -- can take ~1 minute)"
+cd "$ROOT_DIR/api"
+uv venv --allow-existing
+uv pip install -e ".[dev]"
+ok "api venv ready"
+
+info "Running api tests"
+if uv run pytest -q; then
+    ok "api: all tests passed"
+else
+    fail "api: tests failed"
+    FAILED=1
+fi
+
+# ---------------------------------------------------------------------
+# 6. Summary
 # ---------------------------------------------------------------------
 cd "$ROOT_DIR"
 if [ "$FAILED" -eq 0 ]; then
-    info "All set -- 38 tests passing across ingestion + forecast + settlement-engine."
+    info "All set -- 57 tests passing across ingestion + forecast + settlement-engine + api."
     cat <<'EOF'
 
 Next steps:
@@ -115,6 +132,9 @@ Next steps:
       cd ingestion && uv run glasshouse-ingest elexon-prices --date <YYYY-MM-DD>
   - Check the live API schema still matches what the parser assumes:
       cd ingestion && uv run python scripts/verify_live_schema.py
+  - Run the API and try it live:
+      cd api && uv run uvicorn glasshouse_api.main:app --reload
+      -> http://127.0.0.1:8000/docs
   - See README.md for the full architecture, current status, and roadmap.
 EOF
 else

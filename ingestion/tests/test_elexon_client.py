@@ -9,7 +9,7 @@ from glasshouse_ingestion.elexon_client import ElexonApiError, ElexonClient
 from glasshouse_ingestion.models import FuelTypeGeneration, SettlementPrice
 
 
-def _client_with_response(json_body: dict, status_code: int = 200) -> ElexonClient:
+def _client_with_response(json_body: dict | list, status_code: int = 200) -> ElexonClient:
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(status_code, json=json_body, request=request)
 
@@ -41,6 +41,36 @@ def test_get_fuel_type_generation_parses_fixture(elexon_fuel_hh_payload):
     assert all(isinstance(r, FuelTypeGeneration) for r in records)
     wind = next(r for r in records if r.fuel_type == "WIND")
     assert wind.generation_mw == pytest.approx(8213.5)
+
+
+def test_get_fuel_type_generation_hits_the_stream_endpoint_with_a_date_range():
+    """Regression test for a real bug found against the live API on
+    2026-07-25: /datasets/FUELHH (no /stream) silently ignores any date
+    filter and just returns whatever is most recent, regardless of what
+    was requested -- confirmed by querying two very different historical
+    dates and getting today's date back both times. Only
+    /datasets/FUELHH/stream actually filters historically, and it wants
+    a settlementDateFrom/settlementDateTo range rather than a single
+    settlementDate. This test pins the request shape itself (not just
+    response parsing), so a regression here fails immediately rather
+    than silently reintroducing the original bug.
+    """
+    captured: dict[str, object] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured["path"] = request.url.path
+        captured["params"] = dict(request.url.params)
+        return httpx.Response(200, json=[], request=request)
+
+    transport = httpx.MockTransport(handler)
+    http_client = httpx.Client(transport=transport, base_url="https://data.elexon.co.uk/bmrs/api/v1")
+    client = ElexonClient(http_client=http_client)
+
+    client.get_fuel_type_generation(date(2026, 5, 1))
+
+    assert captured["path"] == "/bmrs/api/v1/datasets/FUELHH/stream"
+    assert captured["params"]["settlementDateFrom"] == "2026-05-01"
+    assert captured["params"]["settlementDateTo"] == "2026-05-01"
 
 
 def test_non_200_response_raises_elexon_api_error(elexon_system_prices_payload):
