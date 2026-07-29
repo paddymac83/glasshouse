@@ -1,0 +1,117 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Glasshouse — Live Pricing Quote</title>
+    <link rel="stylesheet" href="{% static 'pricing/style.css' %}">
+</head>
+<body>
+    <header>
+        <h1>Glasshouse</h1>
+        <p class="tagline">A transparent, half-hourly settlement pricing simulator for the GB market.</p>
+    </header>
+
+    <main>
+        <section class="panel">
+            <h2>Get a quote</h2>
+            <form method="get" action="{% url 'pricing:dashboard' %}">
+                <label for="business_type">Business type</label>
+                <select id="business_type" name="business_type">
+                    {% for bt in business_types %}
+                        <option value="{{ bt }}" {% if bt == form_values.business_type %}selected{% endif %}>{{ bt }}</option>
+                    {% endfor %}
+                </select>
+
+                <label for="renewable_share">
+                    Renewable share: <output id="renewable_share_value">{{ form_values.renewable_share }}</output>
+                </label>
+                <input
+                    type="range" id="renewable_share" name="renewable_share"
+                    min="0" max="1" step="0.05" value="{{ form_values.renewable_share }}"
+                    oninput="document.getElementById('renewable_share_value').textContent = this.value">
+
+                <label for="date">Settlement date</label>
+                <input type="date" id="date" name="date" value="{{ form_values.date }}" required>
+
+                <label for="settlement_period">Settlement period (1-48, optional — defaults to right now)</label>
+                <input
+                    type="number" id="settlement_period" name="settlement_period"
+                    min="1" max="48" placeholder="e.g. 36 (6pm)" value="{{ form_values.settlement_period }}">
+
+                <button type="submit">Get live price</button>
+            </form>
+        </section>
+
+        {% if error %}
+            <section class="panel error">
+                <h2>Couldn't compute a quote</h2>
+                <p>{{ error }}</p>
+            </section>
+        {% endif %}
+
+        {% if quote %}
+            <section class="panel result">
+                <h2>
+                    {{ quote.business_type }} — {{ quote.settlement_date }},
+                    period {{ quote.settlement_period }}
+                </h2>
+
+                <div class="price-summary">
+                    <div class="price-box">
+                        <span class="label">Blended generation price</span>
+                        <span class="value">£{{ quote.settlement.blended_generation_price_gbp_per_mwh|floatformat:2 }}/MWh</span>
+                    </div>
+                    {% if quote.benchmark_system_price_gbp_per_mwh %}
+                        <div class="price-box">
+                            <span class="label">Forecast system price (benchmark)</span>
+                            <span class="value">£{{ quote.benchmark_system_price_gbp_per_mwh|floatformat:2 }}/MWh</span>
+                            <span class="note">
+                                n={{ quote.benchmark_sample_size }}
+                                {% if quote.benchmark_fallback_used %}(fallback){% endif %}
+                            </span>
+                        </div>
+                        <div class="price-box {% if quote.savings_vs_benchmark_gbp_per_mwh > 0 %}positive{% else %}negative{% endif %}">
+                            <span class="label">Vs. benchmark</span>
+                            <span class="value">£{{ quote.savings_vs_benchmark_gbp_per_mwh|floatformat:2 }}/MWh</span>
+                        </div>
+                    {% else %}
+                        <div class="price-box muted">
+                            <span class="label">Benchmark</span>
+                            <span class="value">No forecast history yet for this date</span>
+                        </div>
+                    {% endif %}
+                </div>
+
+                {% for bill in quote.settlement.bills %}
+                    <table class="bill">
+                        <caption>{{ bill.consumer_id }} — itemised bill for this period</caption>
+                        <tbody>
+                            {% for line in bill.lines %}
+                                <tr>
+                                    <td>{{ line.label }}</td>
+                                    <td class="amount">£{{ line.amount_gbp|floatformat:2 }}</td>
+                                </tr>
+                            {% endfor %}
+                            <tr class="total">
+                                <td>Total</td>
+                                <td class="amount">£{{ bill.total_gbp|floatformat:2 }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                {% endfor %}
+            </section>
+        {% endif %}
+    </main>
+
+    <footer>
+        <p>
+            This is a simulation using public reference data, not a real
+            tariff or a licensed energy supplier. REST API at
+            <code>/api/quote/</code>, <code>/api/settle/</code>, and friends
+            — see <code>frontend/README.md</code>.
+        </p>
+    </footer>
+</body>
+</html>

@@ -7,13 +7,14 @@
     // was a single-root workspace and only one interpreter could be
     // selected at a time for the whole repo.
     //
-    // Expect ingestion/, forecast/, settlement-engine/, and api/ to each
-    // show up twice in the Explorer: once nested inside "glasshouse (root)",
-    // once as their own top-level section below it. That's normal for
-    // a multi-root workspace set up this way -- the top-level entries
-    // are the ones with their own interpreter and debug configs; the
-    // nested ones under the root are just there so root-level files
-    // like README.md and setup.sh stay visible.
+    // Expect ingestion/, forecast/, settlement-engine/, api/, and
+    // frontend/ to each show up twice in the Explorer: once nested
+    // inside "glasshouse (root)", once as their own top-level section
+    // below it. That's normal for a multi-root workspace set up this
+    // way -- the top-level entries are the ones with their own
+    // interpreter and debug configs; the nested ones under the root
+    // are just there so root-level files like README.md and setup.sh
+    // stay visible.
     "folders": [
         {
             "name": "glasshouse (root)",
@@ -34,6 +35,10 @@
         {
             "name": "api",
             "path": "api"
+        },
+        {
+            "name": "frontend",
+            "path": "frontend"
         }
     ],
     "settings": {

@@ -1,0 +1,181 @@
+:root {
+    --glass-green: #1f6f54;
+    --glass-green-light: #e8f3ef;
+    --ink: #1a1d1f;
+    --muted: #6b7280;
+    --border: #dfe3e6;
+    --bad: #b3261e;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    color: var(--ink);
+    background: #fafafa;
+    margin: 0;
+    line-height: 1.5;
+}
+
+header {
+    background: var(--glass-green);
+    color: white;
+    padding: 2rem 1.5rem;
+}
+
+header h1 {
+    margin: 0 0 0.25rem 0;
+    font-size: 1.75rem;
+    letter-spacing: -0.02em;
+}
+
+.tagline {
+    margin: 0;
+    opacity: 0.9;
+    font-size: 0.95rem;
+}
+
+main {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 1.5rem;
+}
+
+.panel {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.panel h2 {
+    margin-top: 0;
+    font-size: 1.1rem;
+}
+
+form label {
+    display: block;
+    font-weight: 600;
+    font-size: 0.85rem;
+    margin: 1rem 0 0.35rem 0;
+}
+
+form select,
+form input[type="date"],
+form input[type="number"] {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 1rem;
+}
+
+form input[type="range"] {
+    width: 100%;
+}
+
+button {
+    margin-top: 1.5rem;
+    background: var(--glass-green);
+    color: white;
+    border: none;
+    padding: 0.65rem 1.25rem;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+button:hover {
+    opacity: 0.9;
+}
+
+.panel.error {
+    border-color: var(--bad);
+    background: #fdf2f1;
+}
+
+.price-summary {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+}
+
+.price-box {
+    flex: 1;
+    min-width: 160px;
+    background: var(--glass-green-light);
+    border-radius: 8px;
+    padding: 0.85rem 1rem;
+}
+
+.price-box.muted {
+    background: #f0f0f0;
+    color: var(--muted);
+}
+
+.price-box.positive .value { color: var(--glass-green); }
+.price-box.negative .value { color: var(--bad); }
+
+.price-box .label {
+    display: block;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--muted);
+}
+
+.price-box .value {
+    display: block;
+    font-size: 1.3rem;
+    font-weight: 700;
+}
+
+.price-box .note {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--muted);
+}
+
+table.bill {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1rem;
+}
+
+table.bill caption {
+    text-align: left;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+table.bill td {
+    padding: 0.4rem 0;
+    border-bottom: 1px solid var(--border);
+}
+
+table.bill td.amount {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+table.bill tr.total td {
+    font-weight: 700;
+    border-top: 2px solid var(--ink);
+    border-bottom: none;
+}
+
+footer {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 1.5rem;
+    color: var(--muted);
+    font-size: 0.8rem;
+}
+
+footer code {
+    background: #eee;
+    padding: 0.1rem 0.3rem;
+    border-radius: 4px;
+}

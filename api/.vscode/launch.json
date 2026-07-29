@@ -19,6 +19,27 @@
             "justMyCode": true
         },
         {
+            // The single most illustrative test to step through: it's the
+            // only route that touches every part of the system --
+            // settlement engine (like /settle), forecaster (like
+            // /forecast/*), and quote.py's own portfolio-building logic,
+            // all in one request. Good starting breakpoint: the first
+            // line inside quote() in main.py.
+            "name": "pytest: test_quote_ties_settlement_and_benchmark_together",
+            "type": "debugpy",
+            "request": "launch",
+            "python": "${workspaceFolder}/.venv/bin/python",
+            "module": "pytest",
+            "args": [
+                "tests/test_quote.py::test_quote_ties_settlement_and_benchmark_together",
+                "-v",
+                "-s"
+            ],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "justMyCode": true
+        },
+        {
             "name": "pytest: current file",
             "type": "debugpy",
             "request": "launch",

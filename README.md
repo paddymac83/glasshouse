@@ -35,7 +35,7 @@ settled the way this project already assumes.
 | `settlement-engine/` | **built** | Rust: the merit-order allocation and bill-decomposition engine, exposed to Python via PyO3. Pure-Rust tests (`cargo test`) plus a Python bridge test. |
 | `forecast/` | **built** | Python: seasonal-baseline (day-of-week x settlement-period) day-ahead forecasting, reading from `ingestion`'s SQLite store. |
 | `api/` | **built** | FastAPI service wiring ingestion + forecast + settlement-engine together -- `/settle`, `/quote`, `/prices/latest`, `/forecast/*`. |
-| `frontend/` | planned | React dashboard. |
+| `frontend/` | **built** | Django + DRF -- a parallel implementation of `api/`'s pricing surface, plus the actual dashboard UI. See `frontend/README.md` for why there are two. |
 | `infra/` | planned | AWS CDK (Python), CI/CD, observability. |
 | `docs/adr/` | ongoing | Architecture decision records. |
 
@@ -50,14 +50,14 @@ still to be built.
 ./setup.sh
 ```
 
-Checks for `uv` and a Rust toolchain, sets up all four packages'
+Checks for `uv` and a Rust toolchain, sets up all five packages'
 virtual environments, builds the settlement engine's Python extension
-(twice -- once for its own venv, once as api's dependency), and runs
-all 57 tests (17 ingestion + 9 Rust + 3 Python bridge + 12 forecast +
-16 api), printing a single pass/fail summary. Safe to re-run any time —
-every step is idempotent. If either prerequisite is missing it tells
-you exactly what to install rather than failing partway through with
-an unrelated error.
+(three times -- its own venv, api's, and frontend's), and runs all 87
+tests (17 ingestion + 9 Rust + 3 Python bridge + 12 forecast + 16 api +
+30 frontend), printing a single pass/fail summary. Safe to re-run any
+time — every step is idempotent. If either prerequisite is missing it
+tells you exactly what to install rather than failing partway through
+with an unrelated error.
 
 If you'd rather see (or run) each step individually — useful if you're
 only touching one package, or debugging a step that failed — the
@@ -132,28 +132,47 @@ uv run uvicorn glasshouse_api.main:app --reload
 # -> POST /settle or GET /quote for the "get a live price" endpoints
 ```
 
+### Frontend (Python + Django + DRF), by hand
+
+A parallel implementation of `api/`'s pricing surface, plus an actual
+browsable dashboard -- see `frontend/README.md` for why there are two.
+
+```bash
+cd frontend
+uv venv && uv pip install -e ".[dev]"    # same local path deps as api/,
+                                          # same automatic Rust build
+uv run python manage.py migrate          # Django's own internal tables --
+                                          # unrelated to glasshouse.db
+uv run pytest -v                         # 30 tests
+
+uv run python manage.py runserver
+# -> http://127.0.0.1:8000/            the actual dashboard
+# -> http://127.0.0.1:8000/api/quote/?date=2026-08-05&business_type=factory&renewable_share=0.6
+```
+
 ## Development environment (VS Code)
 
-There are three separate Python virtual environments in this repo
-(`ingestion/.venv`, `forecast/.venv`, `settlement-engine/.venv`) plus a
-Rust toolchain -- enough that opening the plain folder and relying on
-VS Code's single, workspace-wide interpreter selection reliably leads
-to "why is this failing" debugging sessions where the real answer is
-"wrong venv." Open **`glasshouse.code-workspace`** instead of the
-folder (File > Open Workspace from File...): it lists `ingestion/`,
-`forecast/`, and `settlement-engine/` as their own workspace roots,
-each carrying its own `.vscode/settings.json` pinning its own
+There are five separate Python virtual environments in this repo
+(`ingestion/.venv`, `forecast/.venv`, `settlement-engine/.venv`,
+`api/.venv`, `frontend/.venv`) plus a Rust toolchain -- enough that
+opening the plain folder and relying on VS Code's single, workspace-wide
+interpreter selection reliably leads to "why is this failing" debugging
+sessions where the real answer is "wrong venv." Open
+**`glasshouse.code-workspace`** instead of the folder (File > Open
+Workspace from File...): it lists `ingestion/`, `forecast/`,
+`settlement-engine/`, `api/`, and `frontend/` as their own workspace
+roots, each carrying its own `.vscode/settings.json` pinning its own
 interpreter and its own `.vscode/launch.json` debug configs. Terminals
 opened from a given folder in the Explorer use that folder's venv, the
 Testing sidebar discovers that folder's tests correctly, and every
 debug config already has an explicit interpreter path -- there's
 nothing global left to accidentally have set wrong.
 
-You'll see `ingestion/`, `forecast/`, and `settlement-engine/` each
-show up twice in the Explorer -- once nested under "glasshouse (root)"
-(so `README.md`, `setup.sh`, `docs/` stay visible), once as their own
-top-level section with the correct interpreter attached. That's
-expected for a multi-root workspace built this way, not a bug.
+You'll see each of those five folders show up twice in the Explorer --
+once nested under "glasshouse (root)" (so `README.md`, `setup.sh`,
+`docs/` stay visible), once as their own top-level section with the
+correct interpreter attached. That's expected for a multi-root
+workspace built this way, not a bug.
 
 ## A note on data accuracy
 

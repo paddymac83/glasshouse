@@ -66,3 +66,21 @@ jobs:
         working-directory: api
       - run: uv run pytest -v
         working-directory: api
+
+  frontend:
+    runs-on: ubuntu-latest
+    needs: settlement-engine-rust
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - uses: astral-sh/setup-uv@v3
+      - run: uv venv
+        working-directory: frontend
+      - run: uv pip install -e ".[dev]"
+        working-directory: frontend
+      - run: uv run python manage.py migrate --no-input
+        working-directory: frontend
+      - run: uv run pytest -v
+        working-directory: frontend

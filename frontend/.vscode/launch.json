@@ -1,0 +1,73 @@
+{
+    // This folder is its own workspace root (see ../../glasshouse.code-workspace),
+    // so ${workspaceFolder} below unambiguously means frontend/ -- no
+    // qualifier needed, and .venv/bin/python is *this* folder's venv.
+    "version": "0.2.0",
+    "configurations": [
+        {
+            // Django-specific gotcha: runserver's default auto-reloader
+            // forks a child process, and the debugger only ever attaches
+            // to the parent -- breakpoints silently never hit unless you
+            // pass --noreload. This config already does; if you copy
+            // this config elsewhere, keep that flag.
+            "name": "Run dev server (Django, --noreload)",
+            "type": "debugpy",
+            "request": "launch",
+            "python": "${workspaceFolder}/.venv/bin/python",
+            "program": "${workspaceFolder}/manage.py",
+            "args": ["runserver", "--noreload"],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "justMyCode": true
+        },
+        {
+            // Exercises the REST interface end-to-end: DRF view ->
+            // pricing.services -> Rust engine + forecaster. Good
+            // starting breakpoint: the first line inside QuoteView.get()
+            // in views.py.
+            "name": "pytest: test_quote_ties_settlement_and_benchmark_together",
+            "type": "debugpy",
+            "request": "launch",
+            "python": "${workspaceFolder}/.venv/bin/python",
+            "module": "pytest",
+            "args": [
+                "pricing/tests/test_quote.py::test_quote_ties_settlement_and_benchmark_together",
+                "-v",
+                "-s"
+            ],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "justMyCode": true
+        },
+        {
+            // Same idea, through the *template* path instead of the REST
+            // one: dashboard() view -> template rendering -> the same
+            // pricing.services underneath. Good starting breakpoint: the
+            // first line inside dashboard() in views.py.
+            "name": "pytest: test_dashboard_respects_an_explicit_settlement_period",
+            "type": "debugpy",
+            "request": "launch",
+            "python": "${workspaceFolder}/.venv/bin/python",
+            "module": "pytest",
+            "args": [
+                "pricing/tests/test_dashboard.py::test_dashboard_respects_an_explicit_settlement_period",
+                "-v",
+                "-s"
+            ],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "justMyCode": true
+        },
+        {
+            "name": "pytest: current file",
+            "type": "debugpy",
+            "request": "launch",
+            "python": "${workspaceFolder}/.venv/bin/python",
+            "module": "pytest",
+            "args": ["${file}", "-v", "-s"],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "justMyCode": true
+        }
+    ]
+}

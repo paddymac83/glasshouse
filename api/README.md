@@ -91,3 +91,13 @@ stylised, roughly plausible figures for a single settlement period --
 useful for demonstrating the pricing mechanism, not a real quote for a
 real business. The `/forecast/*` and `/prices/latest` endpoints, by
 contrast, are real GB market data end to end.
+
+## A second implementation exists too
+
+`frontend/` is a **parallel** Django + DRF implementation of this same
+pricing surface, not a client of this API -- see `frontend/README.md`
+for why. Both exist deliberately: this one was the first, FastAPI
+version; the other was built specifically to learn Django's REST
+framework, applied to the same problem. Neither is a stub or a
+leftover -- they're two independently working, independently tested
+implementations of the same domain logic.

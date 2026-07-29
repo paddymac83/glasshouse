@@ -1,15 +1,10 @@
 #!/usr/bin/env bash
 # setup.sh -- one-command environment setup for Glasshouse.
 #
-# What it does:
-#   1. Checks for uv and a Rust toolchain, with a clear message (not a
-#      cryptic failure) if either is missing.
-#   2. Sets up ingestion/'s venv and installs it plus dev dependencies.
-#   3. Runs the pure-Rust settlement-engine test suite (cargo test) --
-#      no Python needed for this part.
-#   4. Sets up settlement-engine/'s venv and builds the PyO3 extension
-#      (uv pip install -e . invokes maturin under the hood).
-#   5. Runs every test suite and prints one pass/fail summary.
+# What it does: checks for uv and a Rust toolchain; sets up each of
+# ingestion/, forecast/, settlement-engine/, api/, and frontend/ in
+# turn (venv + install + tests, migrations too for frontend/); prints
+# one pass/fail summary at the end covering every test suite.
 #
 # Safe to re-run: every step is idempotent.
 #
@@ -120,11 +115,31 @@ else
 fi
 
 # ---------------------------------------------------------------------
-# 6. Summary
+# 6. frontend/ -- also depends on all three other packages
+# ---------------------------------------------------------------------
+info "Setting up frontend/ (Django + DRF -- builds settlement-engine's Rust extension a third time, into frontend's own venv)"
+cd "$ROOT_DIR/frontend"
+uv venv --allow-existing
+uv pip install -e ".[dev]"
+ok "frontend venv ready"
+
+info "Running Django migrations (frontend's own internal tables -- unrelated to glasshouse.db)"
+uv run python manage.py migrate --no-input
+
+info "Running frontend tests"
+if uv run pytest -q; then
+    ok "frontend: all tests passed"
+else
+    fail "frontend: tests failed"
+    FAILED=1
+fi
+
+# ---------------------------------------------------------------------
+# 7. Summary
 # ---------------------------------------------------------------------
 cd "$ROOT_DIR"
 if [ "$FAILED" -eq 0 ]; then
-    info "All set -- 57 tests passing across ingestion + forecast + settlement-engine + api."
+    info "All set -- 87 tests passing across ingestion + forecast + settlement-engine + api + frontend."
     cat <<'EOF'
 
 Next steps:
@@ -132,9 +147,12 @@ Next steps:
       cd ingestion && uv run glasshouse-ingest elexon-prices --date <YYYY-MM-DD>
   - Check the live API schema still matches what the parser assumes:
       cd ingestion && uv run python scripts/verify_live_schema.py
-  - Run the API and try it live:
+  - Run the FastAPI service and try it live:
       cd api && uv run uvicorn glasshouse_api.main:app --reload
       -> http://127.0.0.1:8000/docs
+  - Run the Django dashboard and try it live:
+      cd frontend && uv run python manage.py runserver
+      -> http://127.0.0.1:8000/
   - See README.md for the full architecture, current status, and roadmap.
 EOF
 else
