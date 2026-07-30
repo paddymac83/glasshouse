@@ -13,7 +13,7 @@ jobs:
       - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
       # uv venv, not --system: ubuntu-latest's system Python is PEP
       # 668 "externally managed" (same protection Debian/Ubuntu ship by
-      # default on real machines) -- --system tries to install straight
+      # default on real machine) -- --system tries to install straight
       # into it and gets blocked. This now matches exactly the commands
       # documented in ingestion/README.md and run by setup.sh, rather
       # than being a third, CI-only pattern.
