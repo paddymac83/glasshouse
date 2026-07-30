@@ -2,7 +2,7 @@ name: ci
 
 on:
   push:
-    branches: [main]
+    branches: [master]
   pull_request:
 
 jobs:
@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v3
+      - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
       - run: uv pip install --system -e ".[dev]"
         working-directory: ingestion
       - run: uv run --directory ingestion pytest -v
@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v3
+      - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
       - run: uv pip install --system -e ".[dev]"
         working-directory: forecast
       - run: uv run --directory forecast pytest -v
@@ -28,9 +28,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
+      # dtolnay/rust-toolchain, not actions-rs/toolchain -- the latter's
+      # org was archived in Oct 2023 and is unmaintained (deprecated
+      # Node runtime, no longer receives fixes). This is the actively
+      # maintained community-standard replacement.
+      - uses: dtolnay/rust-toolchain@stable
       - run: cargo test
         working-directory: settlement-engine
 
@@ -39,7 +41,7 @@ jobs:
     needs: settlement-engine-rust
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v3
+      - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
       - run: uv venv
         working-directory: settlement-engine
       - run: uv pip install -e . && uv pip install pytest
@@ -52,10 +54,8 @@ jobs:
     needs: settlement-engine-rust
     steps:
       - uses: actions/checkout@v4
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-      - uses: astral-sh/setup-uv@v3
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
       # uv venv (not --system) because installing glasshouse-settlement
       # as a local path dependency invokes maturin, which needs a real
       # virtualenv to build into -- same reason settlement-engine's own
@@ -72,10 +72,8 @@ jobs:
     needs: settlement-engine-rust
     steps:
       - uses: actions/checkout@v4
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-      - uses: astral-sh/setup-uv@v3
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
       - run: uv venv
         working-directory: frontend
       - run: uv pip install -e ".[dev]"
