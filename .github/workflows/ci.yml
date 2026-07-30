@@ -2,7 +2,7 @@ name: ci
 
 on:
   push:
-    branches: [master]
+    branches: [main]
   pull_request:
 
 jobs:
@@ -11,18 +11,30 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
-      - run: uv pip install --system -e ".[dev]"
+      # uv venv, not --system: ubuntu-latest's system Python is PEP
+      # 668 "externally managed" (same protection Debian/Ubuntu ship by
+      # default on real machines) -- --system tries to install straight
+      # into it and gets blocked. This now matches exactly the commands
+      # documented in ingestion/README.md and run by setup.sh, rather
+      # than being a third, CI-only pattern.
+      - run: uv venv
         working-directory: ingestion
-      - run: uv run --directory ingestion pytest -v
+      - run: uv pip install -e ".[dev]"
+        working-directory: ingestion
+      - run: uv run pytest -v
+        working-directory: ingestion
 
   forecast:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
-      - run: uv pip install --system -e ".[dev]"
+      - run: uv venv
         working-directory: forecast
-      - run: uv run --directory forecast pytest -v
+      - run: uv pip install -e ".[dev]"
+        working-directory: forecast
+      - run: uv run pytest -v
+        working-directory: forecast
 
   settlement-engine-rust:
     runs-on: ubuntu-latest
