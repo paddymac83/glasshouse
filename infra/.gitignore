@@ -1,0 +1,19 @@
+# Terraform state can contain secrets (e.g. generated passwords, once
+# a later slice adds any) and is specific to one deployment -- never
+# commit it. .terraform/ is just a local provider plugin cache, safe
+# to delete and re-download any time via `terraform init`.
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+
+# Real values, not the example -- terraform.tfvars.example is the
+# thing to commit and keep current.
+terraform.tfvars
+*.auto.tfvars
+
+# .terraform.lock.hcl is NOT ignored, deliberately -- same
+# reproducibility reasoning as Cargo.lock/uv.lock elsewhere in this
+# repo: it pins exact provider versions/checksums, and should be
+# committed once `terraform init` has generated it.

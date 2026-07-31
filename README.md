@@ -36,7 +36,7 @@ settled the way this project already assumes.
 | `forecast/` | **built** | Python: seasonal-baseline (day-of-week x settlement-period) day-ahead forecasting, reading from `ingestion`'s SQLite store. |
 | `api/` | **built** | FastAPI service wiring ingestion + forecast + settlement-engine together -- `/settle`, `/quote`, `/prices/latest`, `/forecast/*`. |
 | `frontend/` | **built** | Django + DRF -- a parallel implementation of `api/`'s pricing surface, plus the actual dashboard UI. See `frontend/README.md` for why there are two. |
-| `infra/` | planned | AWS CDK (Python), CI/CD, observability. |
+| `infra/` | **in progress** | Terraform + Docker to deploy `frontend/` to AWS. S3/ECR/IAM and both Dockerfiles written; Lambda functions, CloudFront/WAF, and cost controls not yet built. See `infra/README.md`. |
 | `docs/adr/` | ongoing | Architecture decision records. |
 
 See each folder's `README.md` for details and, where relevant, what's
@@ -52,9 +52,9 @@ still to be built.
 
 Checks for `uv` and a Rust toolchain, sets up all five packages'
 virtual environments, builds the settlement engine's Python extension
-(three times -- its own venv, api's, and frontend's), and runs all 87
-tests (17 ingestion + 9 Rust + 3 Python bridge + 12 forecast + 16 api +
-30 frontend), printing a single pass/fail summary. Safe to re-run any
+(three times -- its own venv, api's, and frontend's), and runs all 112
+tests (31 ingestion + 9 Rust + 3 Python bridge + 12 forecast + 16 api +
+41 frontend), printing a single pass/fail summary. Safe to re-run any
 time — every step is idempotent. If either prerequisite is missing it
 tells you exactly what to install rather than failing partway through
 with an unrelated error.
@@ -67,12 +67,14 @@ breakdown below is exactly what `setup.sh` automates.
 
 ```bash
 cd ingestion
-uv venv && uv pip install -e ".[dev]"
-uv run pytest -v                # 17 tests, all against mocked HTTP -- no network needed
+uv venv && uv pip install -e ".[dev,deploy]"   # deploy extra (boto3) is required,
+                                                # not optional, for db_sync.py's and
+                                                # lambda_handler.py's tests to collect
+uv run pytest -v                # 31 tests, all against mocked HTTP/boto3 -- no network needed
 
 # pip equivalent:
 #   python3 -m venv .venv && . .venv/bin/activate
-#   pip install -e ".[dev]" && pytest -v
+#   pip install -e ".[dev,deploy]" && pytest -v
 
 # Against the real, public, key-free Elexon API:
 uv run glasshouse-ingest elexon-prices --date 2026-07-22
@@ -139,11 +141,13 @@ browsable dashboard -- see `frontend/README.md` for why there are two.
 
 ```bash
 cd frontend
-uv venv && uv pip install -e ".[dev]"    # same local path deps as api/,
-                                          # same automatic Rust build
+uv venv && uv pip install -e ".[dev,deploy]"   # deploy extra (boto3, gunicorn,
+                                                # whitenoise) is required, not
+                                                # optional, for pricing.db_sync's
+                                                # tests to even collect
 uv run python manage.py migrate          # Django's own internal tables --
                                           # unrelated to glasshouse.db
-uv run pytest -v                         # 30 tests
+uv run pytest -v                         # 41 tests
 
 uv run python manage.py runserver
 # -> http://127.0.0.1:8000/            the actual dashboard

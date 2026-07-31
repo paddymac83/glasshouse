@@ -16,6 +16,11 @@ dev = [
     "pytest>=8.0",
     "pytest-django>=4.8",
 ]
+deploy = [
+    "gunicorn>=22",
+    "whitenoise>=6",
+    "boto3>=1.34",
+]
 
 [build-system]
 requires = ["hatchling"]

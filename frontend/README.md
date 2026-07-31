@@ -54,14 +54,18 @@ What differs is entirely the framework layer:
 
 ```bash
 cd frontend
-uv venv && uv pip install -e ".[dev]"   # resolves ingestion, forecast, and
-                                         # settlement-engine as local path
-                                         # deps and compiles the Rust
-                                         # extension, same as api/ does
+uv venv && uv pip install -e ".[dev,deploy]"  # resolves ingestion, forecast,
+                                               # and settlement-engine as local
+                                               # path deps and compiles the
+                                               # Rust extension, same as api/
+                                               # does; deploy extra (boto3,
+                                               # gunicorn, whitenoise) is
+                                               # required for pricing.db_sync's
+                                               # tests to even collect
 uv run python manage.py migrate         # sets up Django's own internal
                                          # tables (admin/auth/sessions) --
                                          # unrelated to glasshouse.db
-uv run pytest -v                        # 30 tests
+uv run pytest -v                        # 41 tests
 
 uv run python manage.py runserver
 # -> http://127.0.0.1:8000/           the dashboard
@@ -99,6 +103,44 @@ GLASSHOUSE_INGESTION_DB=/path/to/glasshouse.db uv run python manage.py runserver
   is doing the same job pydantic does automatically on model
   construction in `api/` -- DRF just wants that check spelled out as
   an explicit method call rather than happening implicitly.
+
+## Deployment readiness (slice 1 of the AWS deployment)
+
+This repo is being deployed to AWS -- see `infra/README.md` for the
+full architecture. That work is landing in slices; this section covers
+what's here so far, all of it testable without any AWS access at all:
+
+- **`pip install -e ".[deploy]"`** adds `gunicorn` (production WSGI
+  server), `whitenoise` (serves static files from the app process,
+  avoiding a second S3 bucket + CloudFront behavior just for one CSS
+  file), and `boto3`. None of this is needed for local dev -- `.[dev]`
+  is unaffected.
+- **`SECRET_KEY` / `DEBUG` / `ALLOWED_HOSTS`** now read from
+  `DJANGO_SECRET_KEY` / `DJANGO_DEBUG` / `DJANGO_ALLOWED_HOSTS`
+  environment variables, with safe local-dev defaults (`DEBUG` in
+  particular now defaults to `False`, not `True` -- a deployment that
+  forgets to set it explicitly fails safe rather than accidentally
+  shipping debug pages).
+- **`pricing/db_sync.py`** + **`python manage.py sync_db {download,upload}`**
+  -- the S3 sync glue. Deployment-only; nothing in `pricing/services.py`
+  or any request-handling code imports it, they still just see a plain
+  local SQLite path. Reads `GLASSHOUSE_S3_BUCKET` / `GLASSHOUSE_S3_KEY`
+  / `GLASSHOUSE_INGESTION_DB` from the environment.
+- **12 new tests** (`test_db_sync.py`, `test_sync_db_command.py`),
+  all mocking `boto3` directly -- same mocking approach as `httpx` is
+  mocked throughout the rest of this repo, no real AWS calls, no
+  network needed. Frontend test count: 41.
+- Verified beyond the test suite: actually booted `gunicorn` locally
+  with production-like settings (`DJANGO_DEBUG=false`) and confirmed
+  both the dashboard and the WhiteNoise-served static CSS respond
+  correctly -- the same configuration the Lambda container will run.
+
+**What's genuinely unverified**: everything below this point needs
+either Docker (not installed in the environment this was built in) or
+real AWS credentials (also not available there) to actually test.
+Treat the Dockerfiles and Terraform as a well-reasoned first draft --
+your first `docker build` / `terraform plan` is the real test, not a
+formality.
 
 ## The `/quote` portfolio is illustrative, not measured
 

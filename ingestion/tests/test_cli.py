@@ -56,7 +56,7 @@ def test_elexon_backfill_ingests_every_date_in_the_range(
     db_path = tmp_path / "backfill.db"
     handler = _date_tagged_handler(elexon_system_prices_payload, elexon_fuel_hh_payload)
 
-    with patch("glasshouse_ingestion.cli.ElexonClient", return_value=_mock_client(handler)):
+    with patch("glasshouse_ingestion.backfill.ElexonClient", return_value=_mock_client(handler)):
         exit_code = main(
             [
                 "--db", str(db_path),
@@ -83,7 +83,7 @@ def test_elexon_backfill_continues_past_a_failed_date_and_reports_it(
         elexon_system_prices_payload, elexon_fuel_hh_payload, fail_dates=frozenset({"2026-07-21"})
     )
 
-    with patch("glasshouse_ingestion.cli.ElexonClient", return_value=_mock_client(handler)):
+    with patch("glasshouse_ingestion.backfill.ElexonClient", return_value=_mock_client(handler)):
         exit_code = main(
             [
                 "--db", str(db_path),
@@ -129,7 +129,7 @@ def test_elexon_backfill_respects_dataset_filter(tmp_path, elexon_system_prices_
         assert "FUELHH" not in request.url.path, "generation should not be fetched when --dataset=prices"
         return tagged_handler(request)
 
-    with patch("glasshouse_ingestion.cli.ElexonClient", return_value=_mock_client(handler)):
+    with patch("glasshouse_ingestion.backfill.ElexonClient", return_value=_mock_client(handler)):
         exit_code = main(
             [
                 "--db", str(db_path),

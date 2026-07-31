@@ -1,0 +1,9 @@
+# Copy this to terraform.tfvars (gitignored -- see infra/.gitignore)
+# and adjust. Every value here has a sensible default in variables.tf,
+# so an empty terraform.tfvars works too -- this file exists mainly to
+# make the customizable knobs visible in one place.
+
+aws_region   = "eu-west-2"
+project_name = "glasshouse"
+environment  = "prod"
+s3_db_key    = "glasshouse.db"

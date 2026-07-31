@@ -12,9 +12,9 @@ from __future__ import annotations
 
 import argparse
 import sys
-import time
 from datetime import date, datetime, timedelta
 
+from glasshouse_ingestion.backfill import run_backfill
 from glasshouse_ingestion.elexon_client import ElexonApiError, ElexonClient
 from glasshouse_ingestion.octopus_client import OctopusApiError, OctopusClient
 from glasshouse_ingestion.storage import Storage
@@ -49,55 +49,30 @@ def cmd_elexon_generation(args: argparse.Namespace) -> int:
 
 
 def cmd_elexon_backfill(args: argparse.Namespace) -> int:
-    if args.end < args.start:
-        print(f"error: --end ({args.end}) is before --start ({args.start})", file=sys.stderr)
+    def print_progress(i: int, num_days: int, target_date: date, outcomes: list[str]) -> None:
+        print(f"[{i + 1}/{num_days}] {target_date}: {', '.join(outcomes)}")
+
+    try:
+        result = run_backfill(
+            args.db,
+            args.start,
+            args.end,
+            dataset=args.dataset,
+            delay_seconds=args.delay_seconds,
+            on_progress=print_progress,
+        )
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
         return 1
 
-    num_days = (args.end - args.start).days + 1
-    target_dates = [args.start + timedelta(days=i) for i in range(num_days)]
-    datasets = ("prices", "generation") if args.dataset == "both" else (args.dataset,)
-
-    totals = {"prices": 0, "generation": 0}
-    failures: list[tuple[date, str, str]] = []
-
-    with ElexonClient() as client, Storage(args.db) as store:
-        for i, target_date in enumerate(target_dates):
-            results = []
-
-            if "prices" in datasets:
-                try:
-                    written = store.save_system_prices(client.get_system_prices(target_date))
-                    totals["prices"] += written
-                    results.append(f"prices {written}")
-                except ElexonApiError as exc:
-                    failures.append((target_date, "prices", str(exc)))
-                    results.append("prices FAILED")
-
-            if "generation" in datasets:
-                try:
-                    written = store.save_fuel_generation(client.get_fuel_type_generation(target_date))
-                    totals["generation"] += written
-                    results.append(f"generation {written}")
-                except ElexonApiError as exc:
-                    failures.append((target_date, "generation", str(exc)))
-                    results.append("generation FAILED")
-
-            print(f"[{i + 1}/{num_days}] {target_date}: {', '.join(results)}")
-
-            # Be a polite citizen of a free, public API -- especially over
-            # a backfill of many weeks, which is a lot of requests in a row.
-            if args.delay_seconds and i < num_days - 1:
-                time.sleep(args.delay_seconds)
-
-    total_rows = totals["prices"] + totals["generation"]
     print(
-        f"\nDone: {total_rows} rows written across {num_days} dates "
-        f"({totals['prices']} price rows, {totals['generation']} generation rows)."
+        f"\nDone: {result.total_rows} rows written across {result.total_dates} dates "
+        f"({result.prices_rows} price rows, {result.generation_rows} generation rows)."
     )
 
-    if failures:
-        print(f"\n{len(failures)} date/dataset combination(s) failed:", file=sys.stderr)
-        for failed_date, dataset, message in failures:
+    if result.failures:
+        print(f"\n{len(result.failures)} date/dataset combination(s) failed:", file=sys.stderr)
+        for failed_date, dataset, message in result.failures:
             print(f"  {failed_date} {dataset}: {message}", file=sys.stderr)
         return 1
     return 0

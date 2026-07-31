@@ -1,0 +1,22 @@
+# Both Dockerfiles in infra/docker/ build with the repo root as
+# context (docker build -f infra/docker/*.Dockerfile .) -- without
+# this file, COPY frontend ./frontend etc. would happily copy local
+# .venv/__pycache__/staticfiles into the image, bloating it and
+# potentially shipping host-architecture binaries that don't match
+# the container's.
+
+**/.venv/
+**/__pycache__/
+**/*.pyc
+**/.pytest_cache/
+**/*.egg-info/
+**/*.db
+**/*.sqlite3
+frontend/staticfiles/
+settlement-engine/target/
+.git/
+.github/
+docs/
+*.md
+.vscode/
+glasshouse.code-workspace

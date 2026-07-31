@@ -43,7 +43,11 @@ ok "cargo $(cargo --version)"
 info "Setting up ingestion/"
 cd "$ROOT_DIR/ingestion"
 uv venv --allow-existing
-uv pip install -e ".[dev]"
+# .[dev,deploy]: db_sync.py and lambda_handler.py (deployment glue for
+# the ingestion Lambda) import boto3 at module level, so their tests
+# can't collect without the deploy extra installed -- same reasoning
+# as frontend's install a few steps down.
+uv pip install -e ".[dev,deploy]"
 ok "ingestion venv ready"
 
 info "Running ingestion tests"
@@ -120,7 +124,12 @@ fi
 info "Setting up frontend/ (Django + DRF -- builds settlement-engine's Rust extension a third time, into frontend's own venv)"
 cd "$ROOT_DIR/frontend"
 uv venv --allow-existing
-uv pip install -e ".[dev]"
+# .[dev,deploy], not just .[dev]: pricing/db_sync.py imports boto3 at
+# module level (the S3 sync glue for deployment), so the test suite
+# can't even collect test_db_sync.py / test_sync_db_command.py without
+# it installed -- boto3 isn't optional here the way it is for api/ or
+# the other packages.
+uv pip install -e ".[dev,deploy]"
 ok "frontend venv ready"
 
 info "Running Django migrations (frontend's own internal tables -- unrelated to glasshouse.db)"
@@ -139,7 +148,7 @@ fi
 # ---------------------------------------------------------------------
 cd "$ROOT_DIR"
 if [ "$FAILED" -eq 0 ]; then
-    info "All set -- 87 tests passing across ingestion + forecast + settlement-engine + api + frontend."
+    info "All set -- 112 tests passing across ingestion + forecast + settlement-engine + api + frontend."
     cat <<'EOF'
 
 Next steps:

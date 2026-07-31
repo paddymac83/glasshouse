@@ -2,7 +2,7 @@ name: ci
 
 on:
   push:
-    branches: [master]
+    branches: [main]
   pull_request:
 
 jobs:
@@ -13,13 +13,15 @@ jobs:
       - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
       # uv venv, not --system: ubuntu-latest's system Python is PEP
       # 668 "externally managed" (same protection Debian/Ubuntu ship by
-      # default on real machine) -- --system tries to install straight
+      # default on real machines) -- --system tries to install straight
       # into it and gets blocked. This now matches exactly the commands
       # documented in ingestion/README.md and run by setup.sh, rather
-      # than being a third, CI-only pattern..
+      # than being a third, CI-only pattern.
       - run: uv venv
         working-directory: ingestion
-      - run: uv pip install -e ".[dev]"
+      # .[dev,deploy]: db_sync.py and lambda_handler.py import boto3 at
+      # module level, so their tests can't collect without it.
+      - run: uv pip install -e ".[dev,deploy]"
         working-directory: ingestion
       - run: uv run pytest -v
         working-directory: ingestion
@@ -88,7 +90,9 @@ jobs:
       - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
       - run: uv venv
         working-directory: frontend
-      - run: uv pip install -e ".[dev]"
+      # .[dev,deploy]: pricing/db_sync.py imports boto3 at module level,
+      # so the test suite can't collect test_db_sync.py without it.
+      - run: uv pip install -e ".[dev,deploy]"
         working-directory: frontend
       - run: uv run python manage.py migrate --no-input
         working-directory: frontend
